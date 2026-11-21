@@ -1,7 +1,7 @@
 import os
 import logging
 from flask import Flask, render_template, request, jsonify, session
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 from markdown import markdown
 from flask_limiter import Limiter
@@ -19,8 +19,10 @@ if not GEMINI_API_KEY:
 # ------------------------------
 # Configure Gemini API
 # ------------------------------
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+# Uses the google-genai SDK. The older google-generativeai package is
+# deprecated, and the gemini-1.5 models are no longer served.
+client = genai.Client(api_key=GEMINI_API_KEY)
+MODEL_NAME = "gemini-3.8-flash"
 
 # ------------------------------
 # Flask App Setup
@@ -34,7 +36,8 @@ app.secret_key = os.urandom(24)  # Needed for session storage
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s]: %(message)s",
-    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()]
+    # utf-8 so questions and messages with emoji or non-Latin text can be logged on Windows
+    handlers=[logging.FileHandler("app.log", encoding="utf-8"), logging.StreamHandler()]
 )
 
 # ------------------------------
@@ -78,12 +81,12 @@ def ask():
         )
 
         # Call Gemini API
-        response = model.generate_content(chat_input)
+        response = client.models.generate_content(model=MODEL_NAME, contents=chat_input)
 
-        if not response or not hasattr(response, "text") or not response.text.strip():
+        # response.text is None when the reply has no text part (e.g. blocked)
+        answer_text = (response.text or "").strip()
+        if not answer_text:
             raise ValueError("⚠️ Empty response from Gemini API")
-
-        answer_text = response.text.strip()
 
         # Append bot reply to history
         session["chat_history"].append({"role": "assistant", "text": answer_text})
