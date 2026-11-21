@@ -20,12 +20,19 @@
     </div>
 
     <script>
+        // Show typed text as text, so characters like < and > are not read as HTML.
+        function escapeHtml(text) {
+            const holder = document.createElement("div");
+            holder.textContent = text;
+            return holder.innerHTML;
+        }
+
         async function askQuestion() {
             const question = document.getElementById("question").value.trim();
             if (!question) return;
 
             const chatBox = document.getElementById("chat-box");
-            chatBox.innerHTML += `<div class="message user"><strong>You:</strong> ${question}</div>`;
+            chatBox.innerHTML += `<div class="message user"><strong>You:</strong> ${escapeHtml(question)}</div>`;
             document.getElementById("question").value = "";
 
             try {
@@ -39,10 +46,10 @@
                 if (data.answer) {
                     chatBox.innerHTML += `<div class="message bot"><strong>AI chatbot:</strong> ${data.answer}</div>`;
                 } else {
-                    chatBox.innerHTML += `<div class="message bot error"><strong>Error:</strong> ${data.error}</div>`;
+                    chatBox.innerHTML += `<div class="message bot error"><strong>Error:</strong> ${escapeHtml(String(data.error))}</div>`;
                 }
             } catch (err) {
-                chatBox.innerHTML += `<div class="message bot error"><strong>Error:</strong> ${err.message}</div>`;
+                chatBox.innerHTML += `<div class="message bot error"><strong>Error:</strong> ${escapeHtml(err.message)}</div>`;
             }
 
             chatBox.scrollTop = chatBox.scrollHeight;
